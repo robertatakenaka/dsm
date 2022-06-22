@@ -1,24 +1,13 @@
 """
 API for the migration
 """
-import argparse
-import os
 from datetime import datetime
 
 from dsm.extdeps.isis_migration import (
-    id2json,
     migration_manager,
 )
-from dsm.extdeps.isis_migration.migration_models import (
-    get_list_documents_status_arg_help,
-)
-from dsm import configuration
-from dsm.utils.files import size
-from scielo_classic_website.isis_cmds import (
-    create_id_file,
-    get_id_file_path,
-    get_document_isis_db,
-)
+
+from dsm.migration import controller
 
 
 _migration_manager = migration_manager.MigrationManager()
@@ -27,7 +16,6 @@ _migration_manager.db_connect()
 
 _MIGRATION_PARAMETERS = {
     "title": dict(
-        custom_id_function=id2json.journal_id,
         operations_sequence=[
             dict(
                 name="REGISTER_ISIS",
@@ -42,7 +30,6 @@ _MIGRATION_PARAMETERS = {
         ]
     ),
     "issue": dict(
-        custom_id_function=id2json.issue_id,
         operations_sequence=[
             dict(
                 name="REGISTER_ISIS",
@@ -57,7 +44,6 @@ _MIGRATION_PARAMETERS = {
         ]
     ),
     "artigo": dict(
-        custom_id_function=id2json.article_id,
         operations_sequence=[
             dict(
                 name="REGISTER_ISIS",
@@ -121,14 +107,14 @@ def migrate_document(pid):
 
     Returns
     -------
-    generator
+    dict
         results of the migration
     """
-    _document_isis_db_file_path = get_document_isis_db(pid)
-    return migrate_isis_db("artigo", _document_isis_db_file_path)
+    pids_and_their_records = controller.get_records_by_pid(pid)
+    return _migrate_isis_records(pids_and_their_records, "artigo")
 
 
-def migrate_isis_db(db_type, source_file_path=None, records_content=None):
+def migrate_isis_db(db_type, source_file_path):
     """
     Migrate ISIS database content from `source_file_path` or `records_content`
     which is ISIS database or ID file
@@ -139,34 +125,20 @@ def migrate_isis_db(db_type, source_file_path=None, records_content=None):
         "title" or "issue" or "artigo"
     source_file_path: str
         ISIS database or ID file path
-    records_content: str
-        ID records
+
 
     Returns
     -------
     generator
-        results of the migration
-    """
-    if source_file_path:
-        # get id_file_path
-        id_file_path = get_id_file_path(source_file_path)
-
-        # get id file rows
-        rows = id2json.get_id_file_rows(id_file_path)
-    elif records_content:
-        rows = records_content.splitlines()
-    else:
-        raise ValueError(
-            "Unable to migrate ISIS DB. "
-            "Expected `source_file_path` or `records_content`."
-        )
-
-    # migrate
-    return _migrate_isis_records(
-        id2json.join_id_file_rows_and_return_records(rows), db_type)
+    dict
+         results of the migration
+     """
+    pids_and_their_records = controller.get_records_by_source_path(
+        db_type, source_file_path)
+    return _migrate_isis_records(pids_and_their_records, db_type)
 
 
-def _migrate_isis_records(id_file_records, db_type):
+def _migrate_isis_records(pids_and_their_records, db_type):
     """
     Migrate data from `source_file_path` which is ISIS database or ID file
 
@@ -224,8 +196,7 @@ def _migrate_isis_records(id_file_records, db_type):
             "Expected values: title, issue, artigo"
         )
 
-    for pid, records in id2json.get_id_and_json_records(
-            id_file_records, migration_parameters["custom_id_function"]):
+    for pid, records in pids_and_their_records:
         item_result = {"pid": pid}
         try:
             isis_data = records[0]
@@ -328,16 +299,8 @@ def _get_event(operation, saved, isis_created_date=None, isis_updated_date=None)
 
 
 def migrate_acron(acron, id_folder_path=None):
-    configuration.check_migration_sources()
-
-    db_path = configuration.get_bases_acron(acron)
-    print("db:", db_path)
-    if id_folder_path:
-        id_file_path = os.path.join(id_folder_path, f"{acron}.id")
-        id_file_path = create_id_file(db_path, id_file_path)
-        db_path = id_file_path
-        print(f"{id_file_path} - size: {size(id_file_path)} bytes")
-    return migrate_isis_db("artigo", db_path)
+    pids_and_their_records = controller.get_records_by_acron(acron, id_folder_path)
+    return _migrate_isis_records(pids_and_their_records, "artigo")
 
 
 def identify_documents_to_migrate(from_date=None, to_date=None):
