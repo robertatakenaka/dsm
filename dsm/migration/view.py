@@ -14,11 +14,10 @@ from dsm.extdeps.isis_migration.migration_models import (
 )
 from dsm import configuration
 from dsm.utils.files import size
-from dsm.extdeps.isis_migration.isis_cmds import (
+from scielo_classic_website.isis_cmds import (
     create_id_file,
     get_id_file_path,
     get_document_isis_db,
-    get_document_pids_to_migrate,
 )
 
 
@@ -342,9 +341,17 @@ def migrate_acron(acron, id_folder_path=None):
 
 
 def identify_documents_to_migrate(from_date=None, to_date=None):
-    for doc in get_document_pids_to_migrate(
-            from_date, to_date):
-        yield _migration_manager.create_mininum_record_in_isis_doc(
-            doc["pid"], doc["updated"]
-        )
+    """
+    Obtém do índice da bases de dados ISIS os PIDs registrados
+    Registra na base de dados MongoDB que controla o conteúdo migrado
 
+    Parameters
+    ---------
+    from_date (YYYYMMDD): str
+    to_date (YYYYMMDD): str
+
+    Returns
+    -------
+    None
+    """
+    return controller.identify_documents_to_migrate(from_date, to_date)
