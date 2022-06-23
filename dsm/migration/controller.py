@@ -1,6 +1,9 @@
 
-from scielo_classic_website.functions import (
+from scielo_classic_website.migration import (
     get_document_pids_to_migrate,
+    get_records_by_pid,
+    get_records_by_source_path,
+    get_records_by_acron,
 )
 
 from dsm.migration import tasks
