@@ -63,3 +63,39 @@ def register_isis_journal(_id, record):
 
     # salva o journal
     db.save_data(isis_journal)
+
+
+def register_isis_issue(_id, record):
+    """
+    Register migrated issue data
+
+    Parameters
+    ----------
+    _id: str
+    record : dict
+
+    Returns
+    -------
+    str
+        _id
+
+    Raises
+    ------
+        dsm.storage.db.DBSaveDataError
+        dsm.storage.db.DBCreateDocumentError
+    """
+    # recupera isis_issue ou cria se não existir
+    registered = (
+        db.fetch_isis_issue(_id) or
+        db.create_isis_issue()
+    )
+
+    issue = classic_website_migration.Issue(record)
+
+    registered._id = _id
+    registered.isis_updated_date = issue.isis_updated_date
+    registered.isis_created_date = issue.isis_created_date
+    registered.record = issue.record
+
+    # salva o issue
+    db.save_data(registered)

@@ -33,3 +33,11 @@ def identify_documents_to_migrate(from_date, to_date):
 def register_isis_journal(_id, record):
     return controller.register_isis_journal(_id, record)
 
+
+def register_isis_issue(_id, record):
+    return controller.register_isis_issue(_id, record)
+
+
+def register_isis_document(_id, record):
+    return controller.register_isis_document(_id, record)
+

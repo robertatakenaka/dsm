@@ -86,7 +86,7 @@ def update_journal(journal, data):
         add_dict_attribute(journal, 'metrics', data, JounalMetrics)
     except DataNotFoundError as e:
         errors.append(attr_name)
-    journal.save()
+    return journal
 
 
 def add_list_attribute(journal, attr_name, data, class_name):
