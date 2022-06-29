@@ -1,6 +1,8 @@
+import os
+
 from scielo_classic_website.migration import (
     get_document_pids_to_migrate,
-    get_paragraphs_id_file_path,
+    get_paragraphs_records,
 )
 from scielo_classic_website import migration as classic_website_migration
 
@@ -99,3 +101,57 @@ def register_isis_issue(_id, record):
 
     # salva o issue
     db.save_data(registered)
+
+
+def register_isis_document(_id, records):
+    """
+    Register migrated document data
+
+    Parameters
+    ----------
+    _id: str
+    records : list of dict
+
+    Returns
+    -------
+    str
+        _id
+
+    Raises
+    ------
+        dsm.storage.db.DBSaveDataError
+        dsm.storage.db.DBCreateDocumentError
+    """
+    # recupera `isis_document` ou cria se não existir
+
+    # se existirem osregistros de parágrafos que estejam externos à
+    # base artigo, ou seja, em artigo/p/ISSN/ANO/ISSUE_ORDER/...,
+    # os recupera e os ingressa junto aos registros da base artigo
+    p_records = get_paragraphs_records(_id)
+    doc = classic_website_migration.Document(records + p_records)
+    isis_document = (
+            db.fetch_isis_document(_id) or
+            db.create_isis_document()
+    )
+    isis_document._id = _id
+    isis_document.records = doc.records
+
+    isis_document.doi = doc.doi
+    isis_document.pub_year = doc.issue_publication_date[:4]
+
+    isis_document.isis_updated_date = doc.updated_date
+    isis_document.isis_created_date = doc.created_date
+    isis_document.update_status("ISIS_METADATA_MIGRATED")
+
+    isis_document.file_name = os.path.basename(doc.file_code)
+    isis_document.file_type = (
+        "xml" if doc.file_code.endswith(".xml") else "html"
+    )
+    isis_document.issue_folder = doc.issue_folder
+
+    isis_journal = db.fetch_isis_journal(doc.journal_pid)
+    journal = classic_website_migration.Journal(isis_journal.record)
+    isis_document.acron = journal.acronym
+
+    # salva o documento
+    db.save_data(isis_document)
