@@ -4,6 +4,7 @@ import glob
 
 from dsm import exceptions
 from dsm.utils import files
+from dsm.files_storage import minio
 
 
 CLASSIC_WEBSITE_MIGRATION_CELERY_BROKER_URL = os.environ.get(
@@ -19,7 +20,7 @@ CLASSIC_WEBSITE_MIGRATION_QUEUE_LOW = os.environ.get(
     "CLASSIC_WEBSITE_MIGRATION_QUEUE_LOW", 'low_priority')
 
 # collection
-MINIO_SCIELO_COLLECTION = os.environ.get("MINIO_SCIELO_COLLECTION")
+MINIO_MAIN_BUCKET = os.environ.get("MINIO_MAIN_BUCKET") or 'SPF'
 
 # minio
 MINIO_HOST = os.environ.get("MINIO_HOST")
@@ -27,7 +28,12 @@ MINIO_ACCESS_KEY = os.environ.get("MINIO_ACCESS_KEY")
 MINIO_SECRET_KEY = os.environ.get("MINIO_SECRET_KEY")
 MINIO_SECURE = True if os.environ.get("MINIO_SECURE", "").lower() == 'true' else False
 MINIO_TIMEOUT = int(os.environ.get("MINIO_TIMEOUT", "10000"))
-MINIO_SPF_DIR = os.environ.get("MINIO_SPF_DIR")
+# MINIO_SPF_DIR = os.environ.get("MINIO_SPF_DIR")
+
+MINIO_BUCKET_SUBDIR_CLASSIC_WEBSITE = os.environ.get("MINIO_BUCKET_SUBDIR_CLASSIC_WEBSITE") or 'classic_website'
+MINIO_BUCKET_SUBDIR_MIGRATION = os.environ.get("MINIO_BUCKET_SUBDIR_MIGRATION") or 'migration'
+MINIO_BUCKET_SUBDIR_UPLOAD = os.environ.get("MINIO_BUCKET_SUBDIR_UPLOAD") or 'upload'
+MINIO_BUCKET_SUBDIR_PUBLIC = os.environ.get("MINIO_BUCKET_SUBDIR_PUBLIC") or 'public'
 
 # postgresql+psycopg2://user:password@uri:5432/pid_manager
 PID_DATABASE_DSN = os.environ.get("PID_DATABASE_DSN")
@@ -62,16 +68,16 @@ def get_http_client():
         ))
 
 
-def get_files_storage():
-    from dsm.extdeps import minio
+def get_files_storage(subdir):
+    
     VARNAME = (
         "MINIO_HOST",
         "MINIO_ACCESS_KEY",
         "MINIO_SECRET_KEY",
         "MINIO_SECURE",
         "MINIO_TIMEOUT",
-        "MINIO_SCIELO_COLLECTION",
-        "MINIO_SPF_DIR",
+        "MINIO_MAIN_BUCKET",
+        subdir,
     )
     for var_name in VARNAME:
         if not os.environ.get(var_name):
@@ -83,7 +89,8 @@ def get_files_storage():
         minio_host=MINIO_HOST,
         minio_access_key=MINIO_ACCESS_KEY,
         minio_secret_key=MINIO_SECRET_KEY,
-        scielo_collection=MINIO_SCIELO_COLLECTION,
+        bucket_root=MINIO_MAIN_BUCKET,
+        bucket_subdir=subdir,
         minio_secure=MINIO_SECURE,
         minio_http_client=get_http_client(),
     )

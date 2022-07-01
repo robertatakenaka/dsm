@@ -87,3 +87,23 @@ def identify_documents_to_migrate(from_date=None, to_date=None):
     None
     """
     return migration.identify_documents_to_migrate(from_date, to_date)
+
+
+def migrate_issue_files(acron, issue_folder):
+    return migration.register_isis_issue_files(acron, issue_folder)
+
+
+def migrate_img_issue_files(acron, issue_folder):
+    return migration.register_isis_img_issue_files(acron, issue_folder)
+
+
+def migrate_pdf_issue_files(acron, issue_folder):
+    return migration.register_isis_pdf_issue_files(acron, issue_folder)
+
+
+def migrate_html_issue_files(acron, issue_folder):
+    return migration.register_isis_html_issue_files(acron, issue_folder)
+
+
+def migrate_xml_issue_files(acron, issue_folder):
+    return migration.register_isis_xml_issue_files(acron, issue_folder)

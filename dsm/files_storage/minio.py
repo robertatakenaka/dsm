@@ -1,8 +1,9 @@
 # coding: utf-8
+import hashlib
+import json
 import logging
 import os
-import json
-import hashlib
+import tempfile
 from mimetypes import guess_type
 
 from minio import Minio
@@ -18,6 +19,10 @@ def get_mimetype(file_path):
 
 
 class SHA1Error(Exception):
+    pass
+
+
+class FileStorageResponseError(Exception):
     pass
 
 
@@ -39,11 +44,11 @@ def sha1(path):
 class MinioStorage:
     def __init__(
         self, minio_host, minio_access_key, minio_secret_key,
-        scielo_collection,
+        bucket_root, bucket_subdir,
         minio_secure=True, minio_http_client=None,
     ):
 
-        self.bucket_name = "documentstore"
+        self.bucket_root = bucket_root
         self.POLICY_READ_ONLY = {
             "Version": "2012-10-17",
             "Statement": [
@@ -51,13 +56,13 @@ class MinioStorage:
                     "Effect": "Allow",
                     "Principal": {"AWS": ["*"]},
                     "Action": ["s3:GetBucketLocation", "s3:ListBucket"],
-                    "Resource": [f"arn:aws:s3:::{self.bucket_name}"],
+                    "Resource": [f"arn:aws:s3:::{self.bucket_root}"],
                 },
                 {
                     "Effect": "Allow",
                     "Principal": {"AWS": ["*"]},
                     "Action": ["s3:GetObject"],
-                    "Resource": [f"arn:aws:s3:::{self.bucket_name}/*"],
+                    "Resource": [f"arn:aws:s3:::{self.bucket_root}/*"],
                 },
             ],
         }
@@ -67,7 +72,7 @@ class MinioStorage:
         self.minio_secure = minio_secure
         self.http_client = minio_http_client
         self._client_instance = None
-        self.scielo_collection = scielo_collection
+        self.bucket_subdir = bucket_subdir
 
     @property
     def _client(self):
@@ -99,16 +104,16 @@ class MinioStorage:
     def _create_bucket(self):
         # Make a bucket with the make_bucket API call.
         self._client.make_bucket(
-            self.bucket_name, location=self.scielo_collection
+            self.bucket_root, location=self.bucket_subdir
         )
         self._set_public_bucket()
 
     def _set_public_bucket(self):
         self._client.set_bucket_policy(
-            self.bucket_name, json.dumps(self.POLICY_READ_ONLY)
+            self.bucket_root, json.dumps(self.POLICY_READ_ONLY)
         )
 
-    def _generator_object_name(self, file_path, prefix, preserve_name):
+    def _generator_object_name(self, file_path, subdirs, preserve_name):
         """
         2 niveis de Pastas onde :
             * o primeiro representando o periódico por meio do ISSN+Acrônimo
@@ -121,14 +126,14 @@ class MinioStorage:
             n_filename = original_name
         else:
             n_filename = sha1(file_path)
-        return f"{prefix}/{n_filename}{file_extension}"
+        return f"{subdirs}/{n_filename}{file_extension}"
 
     def get_urls(self, media_path: str) -> str:
-        url = self._client.presigned_get_object(self.bucket_name, media_path)
+        url = self._client.presigned_get_object(self.bucket_root, media_path)
         return url.split("?")[0]
 
-    def register(self, file_path, prefix="", original_uri=None, preserve_name=False) -> str:
-        object_name = self._generator_object_name(file_path, prefix, preserve_name)
+    def register(self, file_path, subdirs="", original_uri=None, preserve_name=False) -> str:
+        object_name = self._generator_object_name(file_path, subdirs, preserve_name)
         metadata = {"origin_name": os.path.basename(file_path)}
         if original_uri is not None:
             metadata.update({"origin_uri": original_uri})
@@ -138,7 +143,7 @@ class MinioStorage:
         )
         try:
             self._client.fput_object(
-                self.bucket_name,
+                self.bucket_root,
                 object_name=object_name,
                 file_path=file_path,
                 content_type=get_mimetype(file_path),
@@ -148,10 +153,25 @@ class MinioStorage:
             logger.error(err)
             if err.code == "NoSuchBucket":
                 self._create_bucket()
-                return self.register(file_path, prefix)
+                return self.register(file_path, subdirs)
 
         return self.get_urls(object_name)
 
     def remove(self, object_name: str) -> None:
         # Remove an object.
-        self._client.remove_object(self.bucket_name, object_name)
+        self._client.remove_object(self.bucket_root, object_name)
+
+    def get_file(self, object_name, downloaded_file_path=None):
+        """
+        https://docs.min.io/docs/python-client-api-reference.html#fget_object
+        """
+        if not downloaded_file_path:
+            tf = tempfile.NamedTemporaryFile(delete=False)
+            downloaded_file_path = tf.name
+
+        try:
+            self._client.fget_object(self.bucket_root, object_name, downloaded_file_path)
+        except ResponseError as err:
+            raise FileStorageResponseError(err)
+
+        return downloaded_file_path

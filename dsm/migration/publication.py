@@ -1,7 +1,4 @@
-from scielo_classic_website.migration import (
-    get_document_pids_to_migrate,
-    get_paragraphs_id_file_path,
-)
+
 from scielo_classic_website import migration as classic_website_migration
 from dsm.new_website.journal import update_journal
 from dsm.new_website.issue import update_issue

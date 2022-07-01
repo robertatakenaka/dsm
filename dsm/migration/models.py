@@ -286,6 +286,26 @@ class ISISDocument(Document):
                     published_htmls[f"published html ({item['lang']})"] = 1
             self.tracked_files_to_publish.update(published_htmls)
 
+    def add_asset_file(self, uri, name):
+        if not self.asset_files:
+            self.asset_files = []
+        self.asset_files.append(RemoteAndLocalFile(name=name, uri=uri))
+
+    def add_pdf_file(self, uri, name):
+        if not self.pdf_files:
+            self.pdf_files = []
+        self.pdf_files.append(RemoteAndLocalFile(name=name, uri=uri))
+
+    def add_html_file(self, uri, name):
+        if not self.html_files:
+            self.html_files = []
+        self.html_files.append(RemoteAndLocalFile(name=name, uri=uri))
+
+    def add_xml_file(self, uri, name):
+        if not self.xml_files:
+            self.xml_files = []
+        self.xml_files.append(RemoteAndLocalFile(name=name, uri=uri))
+
     def save(self, *args, **kwargs):
         # update files migration status
         self.update_tracked_files_to_migrate()
@@ -347,11 +367,25 @@ class ISISJournal(Document):
         return '%s' % self._id
 
 
+class IssueFolder(EmbeddedDocument):
+    """
+    Armazena URI, nome do arquivo e anotações sobre o arquivo
+    """
+    zip_uri = URLField(required=True)
+    content_info = DictField(required=True)
+    folder_name = StringField(required=True)
+
+    def __unicode__(self):
+        return '%s' % self.name
+
+
 class ISISIssue(Document):
     """
     Armazena issue migrado
     """
     _id = StringField(max_length=32, primary_key=True, required=True)
+    acron = StringField()
+    issue_folder = StringField()
 
     # datas no registro da base isis para identificar
     # se houve mudança durante a migração
@@ -360,6 +394,12 @@ class ISISIssue(Document):
 
     # registro no formato json correspondente ao conteúdo da base isis
     record = DictField()
+
+    # files
+    img_files = EmbeddedDocumentField(ImgRevistasFiles)
+    html_files = EmbeddedDocumentField(TranslationFiles)
+    pdf_files = EmbeddedDocumentField(PdfFiles)
+    xml_files = EmbeddedDocumentField(XmlFiles)
 
     # data de criação e atualização da migração
     created = DateTimeField()
@@ -370,8 +410,34 @@ class ISISIssue(Document):
         'indexes': [
             'updated',
             'isis_updated_date',
+            'acron',
+            'issue_folder',
         ],
     }
+
+    def add_img_files(self, zipfile_uri, zipfile_name, content_info):
+        self.img_files = ImgRevistasFiles(
+            zip_file=RemoteAndLocalFile(uri=zipfile_uri, name=zipfile_name),
+            files=content_info,
+        )
+
+    def add_pdf_files(self, zipfile_uri, zipfile_name, content_info):
+        self.pdf_files = PdfFiles(
+            zip_file=RemoteAndLocalFile(uri=zipfile_uri, name=zipfile_name),
+            files=content_info,
+        )
+
+    def add_xml_files(self, zipfile_uri, zipfile_name, content_info):
+        self.xml_files = XmlFiles(
+            zip_file=RemoteAndLocalFile(uri=zipfile_uri, name=zipfile_name),
+            files=content_info,
+        )
+
+    def add_html_files(self, zipfile_uri, zipfile_name, content_info):
+        self.html_files = TranslationFiles(
+            zip_file=RemoteAndLocalFile(uri=zipfile_uri, name=zipfile_name),
+            files=content_info,
+        )
 
     def save(self, *args, **kwargs):
         self.updated = datetime.utcnow()
@@ -381,6 +447,94 @@ class ISISIssue(Document):
 
     def __unicode__(self):
         return '%s' % self._id
+
+
+class ImgRevistasFiles(EmbeddedDocument):
+    """
+    Armazena URI, nome do arquivo e anotações sobre o arquivo
+    """
+    zip_file = EmbeddedDocumentField(RemoteAndLocalFile)
+    files = DictField()
+
+    def __unicode__(self):
+        return '%s' % self.name
+
+    def add_zip_file(self, name, uri):
+        self.zip_file = RemoteAndLocalFile(name=name, uri=uri)
+
+    @property
+    def data(self):
+        return dict(
+            zip_filename=self.zip_file.name,
+            zip_uri=self.zip_file.uri,
+            files=self.files
+        )
+
+
+class XmlFiles(EmbeddedDocument):
+    """
+    Armazena URI, nome do arquivo e anotações sobre o arquivo
+    """
+    zip_file = EmbeddedDocumentField(RemoteAndLocalFile)
+    files = ListField()
+
+    def __unicode__(self):
+        return '%s' % self.name
+
+    def add_zip_file(self, name, uri):
+        self.zip_file = RemoteAndLocalFile(name=name, uri=uri)
+
+    @property
+    def data(self):
+        return dict(
+            zip_filename=self.zip_file.name,
+            zip_uri=self.zip_file.uri,
+            files=self.files
+        )
+
+
+class PdfFiles(EmbeddedDocument):
+    """
+    Armazena URI, nome do arquivo e anotações sobre o arquivo
+    """
+    zip_file = EmbeddedDocumentField(RemoteAndLocalFile)
+    files = DictField()
+
+    def __unicode__(self):
+        return '%s' % self.name
+
+    def add_zip_file(self, name, uri):
+        self.zip_file = RemoteAndLocalFile(name=name, uri=uri)
+
+    @property
+    def data(self):
+        return dict(
+            zip_filename=self.zip_file.name,
+            zip_uri=self.zip_file.uri,
+            files=self.files
+        )
+
+
+class TranslationFiles(EmbeddedDocument):
+    """
+    Armazena URI, nome do arquivo e anotações sobre o arquivo
+    """
+    zip_file = EmbeddedDocumentField(RemoteAndLocalFile)
+    files = DictField()
+
+    def __unicode__(self):
+        return '%s' % self.name
+
+    def add_zip_file(self, name, uri):
+        self.zip_file = RemoteAndLocalFile(name=name, uri=uri)
+
+    @property
+    def data(self):
+        return dict(
+            zip_filename=self.zip_file.name,
+            zip_uri=self.zip_file.uri,
+            files=self.files
+        )
 
 
 def get_isis_documents_to_migrate(

@@ -2,8 +2,47 @@ from scielo_classic_website import migration as classic_website_migration
 
 from dsm.migration import db, exceptions
 
+from scielo_classic_website.config import DocumentFiles
+from scielo_classic_website.models.html_body import (
+    BodyFromISIS,
+    BodyFromHTMLFile,
+)
+
 
 class MigratedDocument:
+
+    def __init__(self, document):
+        self.document = document
+
+        self._document_files = DocumentFiles(
+            os.path.join(
+                self.document.journal.acron, self.document.issue_folder),
+            self.document.filename, self.document.original_language)
+        self._files_storage_folder = get_files_storage_folder_for_migration(
+            self.journal_pid, self.document.issue_folder, self.file_name
+        )
+
+    @property
+    def html_translation_texts(self):
+        """
+        Obtém lang, filename e text (front, reference, back) de cada idioma
+        do arquivo HTML de tradução
+        """
+        references_text = self.document.body_from_isis.references_text
+        for lang, front_and_back_files in self.html_translations_files.items():
+            body_from_html_file = BodyFromHTMLFile(
+                front_and_back_files["front"],
+                self.document.body_from_isis.references_text,
+                front_and_back_files.get("back"),
+            )
+            yield {
+                "lang": lang,
+                "filename": os.path.basename(front_and_back_files["front"]),
+                "text": body_from_html_file.html,
+            }
+
+
+class OldMigratedDocument:
 
     def __init__(self, _id):
         self._id = _id

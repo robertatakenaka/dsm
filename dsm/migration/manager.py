@@ -3,7 +3,6 @@
 
 from dsm.migration import migration, publication
 
-
 _MIGRATION_PARAMETERS = {
     "title": dict(
         operations_sequence=[
@@ -31,6 +30,15 @@ _MIGRATION_PARAMETERS = {
                 result="PUBLISHED_ISSUE",
                 action=publication.publish_issue_data,
             )
+        ]
+    ),
+    "issue_files": dict(
+        operations_sequence=[
+            dict(
+                name="REGISTER_ISSUE_FILES",
+                result="REGISTERED_ISSUE_FILES",
+                action=migration.register_isis_issue_files,
+            ),
         ]
     ),
     "artigo": dict(
