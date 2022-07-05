@@ -208,6 +208,62 @@ def register_isis_html_issue_files(acron, issue_folder):
         )
 
 
-def get_migrated_pdf_files(acron, issue_folder, basename):
-	data_storage.get_isis_issue_files(acron, issue_folder, file_type)
+def get_migrated_file_names(acron, issue_folder):
+    """
+    Recupera os nomes dos arquivos do site clássico
 
+    Returns
+    -------
+    dict
+        {
+            "a01": {
+                "pdf": {"main": "a01.pdf", "en": "en_a01.pdf"},
+                "xml": "a01.xml",
+                "html": {"en": "en_a01.html"},
+            }
+            "img": {"/path/acron/volnum/name.jpg": "name.jpg"}
+        }
+    """
+    files = {}
+    pdf_files = data_storage.get_isis_issue_files(acron, issue_folder, "pdf")
+    if pdf_files:
+        for name, files_info in pdf_files['files'].items():
+            files.setdefault(name, {})
+            files[name]["pdf"] = files_info
+
+    xml_files = data_storage.get_isis_issue_files(acron, issue_folder, "xml")
+    if xml_files:
+        for name, files_info in xml_files['files'].items():
+            files.setdefault(name, {})
+            files[name]["xml"] = files_info
+
+    html_files = data_storage.get_isis_issue_files(acron, issue_folder, "html")
+    if html_files:
+        for name, files_info in html_files['files'].items():
+            files.setdefault(name, {})
+            files[name]["html"] = files_info
+
+    img_files = data_storage.get_isis_issue_files(acron, issue_folder, "img")
+    return {"img": img_files, "documents": files}
+
+
+def get_migrated_files(acron, issue_folder, file_type):
+    """
+    Recupera os arquivos do site clássico
+
+    Returns
+    -------
+    dict
+        {
+            "a01": {
+                "pdf": {"main": "a01.pdf", "en": "en_a01.pdf"},
+                "xml": "a01.xml",
+                "html": {"en": "en_a01.html"},
+            }
+            "img": {"/path/acron/volnum/name.jpg": "name.jpg"}
+        }
+    """
+    _files = data_storage.get_isis_issue_files(acron, issue_folder, file_type)
+    if _files:
+        return migrated_files_storage.get_issue_files(
+            acron, issue_folder, file_type, _files['zipfile_name'])

@@ -34,26 +34,25 @@ def store_issue_files(acron, issue_folder, files, folder):
     )
 
 
-def get_document_files(acron, issue_folder, file_type_folder, zipfile_name, filenames=None):
+def get_issue_files(acron, issue_folder, folder, zipfile_name, file_names=None):
     """
-    Recupera os arquivos do site clássico
+    Recupera do minio os arquivos do site clássico
 
     Parameters
     ----------
     acron: str
     issue_folder: str
-    file_type_folder: str (xml, pdf, html, img)
+    folder: str (xml, pdf, html, img)
     zipfile_name: str (basename of zip_file_path)
-    filenames: str list (lista dos arquivos)
-
+    file_names: str list (lista dos arquivos a serem obtidos)
+        se None, retorna todos items do zip
     """
-    subdirs = get_subdirs(acron, issue_folder, file_type_folder)
+    if folder not in ("xml", "pdf", "html", "img"):
+        raise ValueError(
+            "migrate_document_files.get_document_files expects "
+            "xml or pdf or html or img as value for "
+            "`folder` parameter"
+        )
+    subdirs = get_subdirs(acron, issue_folder, folder)
     path = os.path.join(subdirs, zipfile_name)
-    zip_path = classic_website_files_storage.get_file(path)
-    files = {}
-    with ZipFile(zip_path) as zf:
-        filenames = filenames or zf.namelist()
-        for filename in filenames:
-            with zf.open(filename, "rb") as fp:
-                files[filename] = fp.read()
-    return files
+    return classic_website_files_storage.get_zip_file_items(path)
