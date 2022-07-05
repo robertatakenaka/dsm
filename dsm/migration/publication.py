@@ -1,4 +1,9 @@
+"""
+Módulo componente da migração
 
+Funções para obter dados migrados e publicar no site novo
+
+"""
 from scielo_classic_website import migration as classic_website_migration
 from dsm.new_website.journal import update_journal
 from dsm.new_website.issue import update_issue

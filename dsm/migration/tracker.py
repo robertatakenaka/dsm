@@ -1,3 +1,6 @@
+"""
+Possivelmente será removido após refatoração
+"""
 from datetime import datetime
 
 

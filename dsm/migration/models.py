@@ -1,4 +1,11 @@
 # coding: utf-8
+
+"""
+Módulo componente da migração
+
+Modelos dos dados do site clássico
+
+"""
 from datetime import datetime
 from mongoengine import (
     Document,

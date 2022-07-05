@@ -1,6 +1,12 @@
 """
-"""
+Módulo componente da migração
 
+Coordena:
+
+- obtenção de dados do site clássico e seu armazenamento
+- publicação deste conteúdo no site novo a partir dos dados migrados
+
+"""
 from dsm.migration import migration, publication
 
 _MIGRATION_PARAMETERS = {

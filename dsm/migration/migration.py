@@ -1,6 +1,17 @@
-from scielo_classic_website import migration as classic_website
-from dsm.files_storage import migrated_files_storage
+"""
+Módulo que trata a migração
 
+Coordena a interação entre:
+
+- base de dados mongo com registros com dados do site clássico
+- minio com arquivos do site clássico
+- biblioteca scielo_migration (scielo_classic_website)
+
+"""
+
+from scielo_classic_website import migration as classic_website
+
+from dsm.files_storage import migrated_files_storage
 from dsm.migration import tasks, data_storage
 
 
@@ -198,3 +209,5 @@ def register_isis_html_issue_files(acron, issue_folder):
 
 
 def get_migrated_pdf_files(acron, issue_folder, basename):
+	data_storage.get_isis_issue_files(acron, issue_folder, file_type)
+

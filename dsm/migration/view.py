@@ -1,10 +1,8 @@
 """
-API for the migration
-"""
+Módulo componente da migração
 
-from dsm.extdeps.isis_migration import (
-    migration_manager,
-)
+Interface para as funções de migração que devem interagir com a interface Web
+"""
 
 from dsm.migration import manager, migration
 

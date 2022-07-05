@@ -1,3 +1,10 @@
+"""
+Módulo componente da migração
+
+Funções de acesso à base de dados mongo com dados do site clássico
+
+"""
+
 import os
 
 from scielo_classic_website import migration as classic_website_migration
@@ -286,6 +293,7 @@ def get_isis_issue_files(acron, issue_folder, file_type):
 
     if file_type == "html":
         return registered.html_files.data
+	raise ValueError("get_isis_issue_files allowed values for `file_type`: pdf | img | xml | html ")
 
 
 def register_isis_document(_id, records):

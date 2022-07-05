@@ -1,3 +1,7 @@
+"""
+Rascunho / talvez não será usado
+"""
+
 from scielo_classic_website import migration as classic_website_migration
 
 from dsm.migration import db, exceptions
