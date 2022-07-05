@@ -170,8 +170,36 @@ class MinioStorage:
             downloaded_file_path = tf.name
 
         try:
-            self._client.fget_object(self.bucket_root, object_name, downloaded_file_path)
+            self._client.fget_object(
+                self.bucket_root, object_name, downloaded_file_path)
         except ResponseError as err:
             raise FileStorageResponseError(err)
 
         return downloaded_file_path
+
+    def get_zip_file_items(self, object_name, downloaded_folder_path=None):
+        """
+        Download a zipfile and returns its content as dict
+
+        Returns
+        -------
+        dict
+            {
+                "item1": "/tmp/zip_file_item_1",
+                "item2": "/tmp/zip_file_item_2",
+            }
+        """
+        if not downloaded_folder_path:
+            downloaded_folder_path = tempfile.TemporaryDirectory()
+
+        zip_path = self.get_file(object_name)
+
+        files = {}
+        with ZipFile(zip_path) as zf:
+            for filename in zf.namelist():
+                file_path = os.path.join(downloaded_folder_path, filename)
+                with open(file_path, "wb") as wfp:
+                    with zf.open(filename, "rb") as fp:
+                        wfp.write(fp.read())
+                    files[filename] = file_path
+        return files
