@@ -8,6 +8,9 @@ from opac_schema.v1.models import (
     LastIssue,
 )
 
+from dsm.new_website import db
+
+
 ISSUE_ATTRIBUTES = (
     'cover_url',
     'volume',
@@ -28,44 +31,60 @@ ISSUE_ATTRIBUTES = (
 )
 
 
-def update_issue(registered, data):
+def update_issue(data):
     """
     Update the `issue` attributes with `data` attributes
     Parameters
     ----------
-    registered : opac_schema.v1.models.Issue
     data : dict
     """
+
+    new_website_issue_id = get_bundle_id(
+        data['journal'],
+        data['year'],
+        data['volume'],
+        data['number'],
+        data['suppl_text'],
+    )
+
+    # obtém o registro issue do site novo
+    published_issue = db.fetch_issue(new_website_issue_id) or db.create_issue()
+
     # TODO registered._id deve ter o mesmo padrão usado no site novo
     # e não o pid de fascículo do site antigo
 
-    registered.journal = Journal.objects.filter(_id=data["journal_id"])
+    published_issue.journal = db.fetch_journal(_id=data["journal"])
     # ReferenceField(Journal, reverse_delete_rule=CASCADE)
 
     # not available in isis
     # TODO: verificar o uso no site
-    # registered.cover_url = f_registered.cover_url
+    # published_issue.cover_url = f_published_issue.cover_url
 
     for attr_name in ISSUE_ATTRIBUTES:
         try:
-            setattr(registered, attr_name, data[attr_name])
+            setattr(published_issue, attr_name, data[attr_name])
         except KeyError:
             pass
 
-    registered.type = _get_issue_type(registered)
+    published_issue.type = _get_issue_type(published_issue)
 
     # ID no site
-    registered._id = get_bundle_id(
-        registered.journal._id,
-        registered.year,
-        registered.volume,
-        registered.number,
-        registered.suppl_text,
-    )
-    registered.iid = registered._id
-    registered.is_public = True
+    published_issue._id = new_website_issue_id
+    published_issue.iid = published_issue._id
+    published_issue.is_public = True
 
-    return registered
+    published_issue.pid = (
+        published_issue.journal._id + str(published_issue.year) +
+        str(published_issue.order).zfill(4)
+    )
+    if published_issue.type == "ahead":
+        published_issue.url_segment = "9999.nahead"
+    else:
+        published_issue.url_segment = (
+            f"{str(published_issue.year)}.{published_issue.label}"
+        )
+
+    return published_issue
 
 
 def get_bundle_id(issn_id, year, volume=None, number=None, supplement=None):

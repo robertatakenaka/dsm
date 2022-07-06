@@ -347,7 +347,17 @@ def register_isis_document(_id, records):
     save_data(isis_document)
 
 
-def get_document_metadata(_id):
+def get_journal_data(_id):
+    record = db.fetch_isis_journal(_id)
+    return classic_website_migration.Journal(record.record)
+
+
+def get_issue_data(_id):
+    record = db.fetch_isis_issue(_id)
+    return classic_website_migration.Issue(record.record)
+
+
+def get_document_data(_id):
     record = db.fetch_isis_document(_id)
     return classic_website_migration.Document(record.record)
 

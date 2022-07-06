@@ -9,8 +9,6 @@ from dsm.new_website.journal import update_journal
 from dsm.new_website.issue import update_issue
 from dsm.new_website import document as new_website_document_publisher
 
-from dsm.migration.migrated_document import MigratedDocument
-
 from dsm.migration import db
 from dsm.migration import migration
 
@@ -58,21 +56,28 @@ def adapt_issue_data(issue_data):
     data = {}
     if issue_data.number == "ahead":
         data["volume"] = None
-        data["number"] = None
-    data["suppl_text"] = issue_data.get("supplement_volume") or issue_data.get("supplement_number")
+        data["number"] = "ahead"
+        data["type"] = "ahead"
+    data["suppl_text"] = issue_data.suppl
 
     # FIXME
     data["spe_text"] = (
-        issue_data["number"] if 'spe' in issue_data["number"] else None
+        issue_data.number if 'spe' in issue_data.number else None
     )
-    data["year"] = int(issue_data["publication_date"][:4])
-    data["label"] = issue_data["issue_folder"]
-    data["assets_code"] = issue_data["issue_folder"]
+    data["year"] = int(issue_data.publication_date[:4])
+    data["label"] = issue_data.issue_folder
+    data["assets_code"] = issue_data.issue_folder
 
     # TODO: no banco do site 20103 como int e isso está incorreto
     # TODO: verificar o uso no site
     # ou fica como str 20130003 ou como int 3
-    data["order"] = int(issue_data["order"][4:])
+    data["order"] = int(issue_data.order[4:])
+
+    # data['titles'] = issue_data.titles
+    # data['sections'] = issue_data.sections
+    # url_segment = StringField() | YYYY.label or 9999.ahead
+    # pid = StringField() - ISSN + YYYY + ORDER IN YEAR(4)
+
     return data
 
 
@@ -88,22 +93,15 @@ def publish_issue_data(issue_id):
     -------
     dict
     """
-    # registro migrado formato json
-    isis_registered = db.fetch_isis_issue(issue_id)
+    # obtém os dados de issue migrado
+    migrated_issue = migration.get_issue_data(issue_id)
 
-    # interface mais amigável para obter os dados
-    issue = classic_website_migration.Issue(isis_registered.record)
-    issue_data = issue.attributes
-    issue_data.update(adapt_issue_data(isis_registered))
+    # atualiza os dados do issue do site novo
+    adapted_data = adapt_issue_data(migrated_issue)
 
-    # cria ou recupera o registro do website
-    registered_issue = db.fetch_issue(issue_id) or db.create_issue()
 
-    # atualiza os dados
-    update_issue(registered_issue, issue_data)
-
-    # salva os dados
-    db.save_data(registered_issue)
+    # grava os dados do issue no site novo
+    new_website_issue_publisher.update_issue(adapted_data)
 
 
 def adapt_document_data(original):
@@ -188,7 +186,6 @@ def publish_document_metadata(pid_v2):
     -------
     dict
     """
-    # FIXME domain_key?
     # obtém os dados de artigo migrado
     classic_website_doc = migration.get_document_data(pid_v2)
 

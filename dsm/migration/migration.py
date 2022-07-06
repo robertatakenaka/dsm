@@ -47,6 +47,14 @@ def register_isis_document(_id, record):
     return data_storage.register_isis_document(_id, record)
 
 
+def get_journal_data(_id):
+    return data_storage.get_journal_data(_id)
+
+
+def get_issue_data(_id):
+    return data_storage.get_issue_data(_id)
+
+
 def get_document_data(_id):
     return data_storage.get_document_data(_id)
 
