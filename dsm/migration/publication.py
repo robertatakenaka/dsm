@@ -241,20 +241,43 @@ def migrate_metadata(document, classic_website_doc):
         classic_website_doc.lpage,
         classic_website_doc.original_section,
     )
-    new_website_document_publisher.add_abstracts(
-        document, classic_website_doc.abstracts)
+    for abstract in classic_website_doc.abstracts:
+        new_website_document_publisher.add_abstracts(
+            document, abstract['language'], abstract['text'],
+        )
     new_website_document_publisher.add_abstract_languages(document)
-    new_website_document_publisher.add_authors(
-        document, classic_website_doc.authors)
-    new_website_document_publisher.add_authors_meta(
-        document, classic_website_doc.authors)
 
-    new_website_document_publisher.add_keywords(
-        document, classic_website_doc.keywords_groups)
+    for translated_title in classic_website_doc.translated_titles:
+        new_website_document_publisher.add_translated_titles(
+            document, translated_title['language'], translated_title['text'],
+        )
+
+    for author in classic_website_doc.authors:
+        new_website_document_publisher.add_authors(
+            document, author['surname'], author['given_names'],
+            author.get("suffix"),
+        )
+        new_website_document_publisher.add_authors_meta(
+            document, author['surname'], author['given_names'],
+            author.get("suffix"),
+            author.get("affiliation"),
+            author.get("orcid"),
+        )
+
+    kwd_groups = {}
+    for kwd in classic_website_doc.keywords:
+        kwd_groups.setdefault(kwd['language'], [])
+        text = kwd["text"]
+        if kwd.get("subkey"):
+            text += f", {kwd['subkey']}"
+        kwd_groups[kwd['language']].append(text)
+
+    for lang, items in kwd_groups.items():
+        new_website_document_publisher.add_keywords(
+            document, lang, items,
+        )
     new_website_document_publisher.add_order(
         document, classic_website_doc.order)
-    new_website_document_publisher.add_translated_titles(
-        document, classic_website_doc.translated_titles)
     # FIXME
     # new_website_document_publisher.add_related_articles(
     #     document, classic_website_doc.related_articles)
