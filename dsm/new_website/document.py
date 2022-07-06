@@ -1,7 +1,7 @@
 from opac_schema.v1 import models
 
-from dsm.migration import db
-from dsm.new_website import exceptions
+from dsm.core.db import save_data
+from dsm.new_website import db
 
 
 def format_yyyy_hyphen_mm_hyphen_dd(yyyymmdd):
@@ -44,7 +44,7 @@ def get_document(pid, aop_pid):
 
 def publish_document(document):
     document.aid = document._id
-    db.save_data(document)
+    save_data(document)
 
 
 def update_data_string_type(

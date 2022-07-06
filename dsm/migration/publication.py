@@ -12,6 +12,7 @@ from dsm.new_website import document as new_website_document_publisher
 from dsm.migration.migrated_document import MigratedDocument
 
 from dsm.migration import db
+from dsm.migration import migration
 
 
 def adapt_journal_data(original):
@@ -189,24 +190,21 @@ def publish_document_metadata(pid_v2):
     """
     # FIXME domain_key?
     # obtém os dados de artigo migrado
-    migrated_document = MigratedDocument(pid_v2)
+    classic_website_doc = migration.get_document_data(pid_v2)
 
-    classic_website_doc = migrated_document.classic_doc
-
-    # atualiza os dados
+    # obtém o documento do registro do site novo
     document = new_website_document_publisher.get_document(
         pid_v2, classic_website_doc.aop_pid)
+
+    # atualiza os dados do documento do site novo
     migrate_metadata(document, classic_website_doc)
 
+    # grava os dados do documento no site novo
     new_website_document_publisher.publish_document(document)
 
-    # indica status de `published_incomplete`
-    migrated_document._isis_document.update_status("PUBLISHED_INCOMPLETE")
-
-    # mas ao salvar o documento, este será avaliado se os arquivos que
-    # deveriam ser publicados estão publicados, então o status muda
-    # para `published_complete`
-    db.save_data(migrated_document._isis_document)
+    # atualiza status da migração
+    # migration.update_status("PUBLISHED_INCOMPLETE")
+    migration.register_metadata_was_published(pid_v2)
 
 
 def migrate_metadata(document, classic_website_doc):

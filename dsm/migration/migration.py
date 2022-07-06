@@ -47,6 +47,15 @@ def register_isis_document(_id, record):
     return data_storage.register_isis_document(_id, record)
 
 
+def get_document_data(_id):
+    return data_storage.get_document_data(_id)
+
+
+def register_metadata_was_published(_id):
+    # indica status de `PUBLISHED_INCOMPLETE`
+    data_storage.update_migration_status(_id, "DOCUMENT_METADATA_PUBLISHED")
+
+
 def register_isis_issue_files(acron, issue_folder):
     """
     Obtém os arquivos das pastas:

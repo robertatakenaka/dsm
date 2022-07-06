@@ -9,11 +9,8 @@ import os
 
 from scielo_classic_website import migration as classic_website_migration
 
+from dsm.core.db import save_data
 from dsm.migration import db
-from dsm import configuration
-
-
-db.mk_connection(configuration.DATABASE_CONNECT_URL)
 
 
 def create_mininum_record_in_isis_doc(pid, isis_updated_date):
@@ -29,7 +26,7 @@ def create_mininum_record_in_isis_doc(pid, isis_updated_date):
         isis_document._id = pid
         isis_document.isis_updated_date = isis_updated_date
         isis_document.update_status("PENDING_MIGRATION")
-        db.save_data(isis_document)
+        save_data(isis_document)
         return {"pid": pid, "result": "done"}
     return {"pid": pid, "result": "skip"}
 
@@ -67,7 +64,7 @@ def register_isis_journal(_id, record):
     isis_journal.isis_created_date = journal.isis_created_date
 
     # salva o journal
-    db.save_data(isis_journal)
+    save_data(isis_journal)
 
 
 def register_isis_issue(_id, record):
@@ -105,7 +102,7 @@ def register_isis_issue(_id, record):
     registered.record = issue.record
 
     # salva o issue
-    db.save_data(registered)
+    save_data(registered)
 
 
 def register_isis_issue_files(acron, issue_folder, imgs, pdfs, xmls=None, htmls=None):
@@ -140,7 +137,7 @@ def register_isis_issue_files(acron, issue_folder, imgs, pdfs, xmls=None, htmls=
         registered.add_html_files(**htmls)
 
     # salva o issue
-    db.save_data(registered)
+    save_data(registered)
 
 
 def register_isis_img_issue_files(acron, issue_folder, imgs):
@@ -169,7 +166,7 @@ def register_isis_img_issue_files(acron, issue_folder, imgs):
         registered.add_img_files(**imgs)
 
     # salva o issue
-    db.save_data(registered)
+    save_data(registered)
 
 
 def register_isis_pdf_issue_files(acron, issue_folder, pdfs):
@@ -198,7 +195,7 @@ def register_isis_pdf_issue_files(acron, issue_folder, pdfs):
         registered.add_pdf_files(**pdfs)
 
     # salva o issue
-    db.save_data(registered)
+    save_data(registered)
 
 
 def register_isis_xml_issue_files(acron, issue_folder, xmls):
@@ -227,7 +224,7 @@ def register_isis_xml_issue_files(acron, issue_folder, xmls):
         registered.add_xml_files(**xmls)
 
     # salva o issue
-    db.save_data(registered)
+    save_data(registered)
 
 
 def register_isis_html_issue_files(acron, issue_folder, htmls):
@@ -256,7 +253,7 @@ def register_isis_html_issue_files(acron, issue_folder, htmls):
         registered.add_html_files(**htmls)
 
     # salva o issue
-    db.save_data(registered)
+    save_data(registered)
 
 
 def get_isis_issue_files(acron, issue_folder, file_type):
@@ -293,7 +290,7 @@ def get_isis_issue_files(acron, issue_folder, file_type):
 
     if file_type == "html":
         return registered.html_files.data
-	raise ValueError("get_isis_issue_files allowed values for `file_type`: pdf | img | xml | html ")
+    raise ValueError("get_isis_issue_files allowed values for `file_type`: pdf | img | xml | html ")
 
 
 def register_isis_document(_id, records):
@@ -347,4 +344,15 @@ def register_isis_document(_id, records):
     isis_document.acron = journal.acronym
 
     # salva o documento
-    db.save_data(isis_document)
+    save_data(isis_document)
+
+
+def get_document_metadata(_id):
+    record = db.fetch_isis_document(_id)
+    return classic_website_migration.Document(record.record)
+
+
+def update_migration_status(_id, status):
+    record = db.fetch_isis_document(_id)
+    record.update_status(status)
+    save_data(record)
