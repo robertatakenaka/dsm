@@ -50,16 +50,10 @@ def update_issue(data):
     # obtém o registro issue do site novo
     published_issue = db.fetch_issue(new_website_issue_id) or db.create_issue()
 
-    # TODO registered._id deve ter o mesmo padrão usado no site novo
-    # e não o pid de fascículo do site antigo
-
-    published_issue.journal = db.fetch_journal(_id=data["journal"])
     # ReferenceField(Journal, reverse_delete_rule=CASCADE)
+    published_issue.journal = db.fetch_journal(_id=data["journal"])
 
-    # not available in isis
-    # TODO: verificar o uso no site
-    # published_issue.cover_url = f_published_issue.cover_url
-
+    # issue attributes
     for attr_name in ISSUE_ATTRIBUTES:
         try:
             setattr(published_issue, attr_name, data[attr_name])

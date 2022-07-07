@@ -8,6 +8,9 @@ from opac_schema.v1.models import (
     LastIssue,
 )
 
+from dsm.new_website import db
+
+
 class DataNotFoundError(Exception):
     ...
 
@@ -57,36 +60,44 @@ JOURNAL_ATTRIBUTES_DICT_LIST = (
 )
 
 
-def update_journal(journal, data):
-    # FIXME errors
-    errors = []
+def update_journal(journal_data):
+    # cria ou recupera o registro do new website
+    journal = (
+        db.fetch_journal(journal_data.scielo_issn) or db.create_journal()
+    )
+
+    # atualiza os dados
+    # FIXME attribute_not_found
+    attribute_not_found = []
     for attr_name in JOURNAL_ATTRIBUTES:
         try:
             setattr(journal, attr_name, data[attr_name])
         except KeyError:
-            errors.append(attr_name)
+            attribute_not_found.append(attr_name)
 
     for attr_name in JOURNAL_ATTRIBUTES_STR_LIST:
         try:
             setattr(journal, attr_name, data[attr_name])
         except KeyError:
-            errors.append(attr_name)
+            attribute_not_found.append(attr_name)
 
     for attr_name, class_name in JOURNAL_ATTRIBUTES_DICT_LIST:
         try:
             add_list_attribute(journal, attr_name, data, class_name)
         except DataNotFoundError as e:
-            errors.append(attr_name)
+            attribute_not_found.append(attr_name)
 
     try:
         add_dict_attribute(journal, 'last_issue', data, LastIssue)
     except DataNotFoundError as e:
-        errors.append(attr_name)
+        attribute_not_found.append(attr_name)
     try:
-        add_dict_attribute(journal, 'metrics', data, JounalMetrics)
+        add_dict_attribute(journal, 'metrics', data, JournalMetrics)
     except DataNotFoundError as e:
-        errors.append(attr_name)
-    return journal
+        attribute_not_found.append(attr_name)
+
+    # salva os dados
+    db.save_data(journal)
 
 
 def add_list_attribute(journal, attr_name, data, class_name):

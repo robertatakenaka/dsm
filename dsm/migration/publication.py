@@ -5,8 +5,8 @@ Funções para obter dados migrados e publicar no site novo
 
 """
 from scielo_classic_website import migration as classic_website_migration
-from dsm.new_website.journal import update_journal
-from dsm.new_website.issue import update_issue
+from dsm.new_website.journal import new_website_journal_publisher
+from dsm.new_website.issue import new_website_issue_publisher
 from dsm.new_website import document as new_website_document_publisher
 
 from dsm.migration import db
@@ -31,25 +31,13 @@ def publish_journal_data(journal_id):
     -------
     dict
     """
-    # registro migrado formato json
-    journal_isis = db.fetch_isis_journal(journal_id)
+    # classic_website_migration.Journal
+    migrated_journal_data = migration.get_journal_data(journal_id)
 
-    # interface mais amigável para obter os dados
-    journal_i = classic_website_migration.Journal(journal_isis.record)
+    adapted_journal_data = adapt_journal_data(migrated_journal_data)
 
-    journal_data = journal_i.attributes
-    journal_data.update(adapt_journal_data(journal_data))
-
-    # cria ou recupera o registro do new website
-    journal = (
-        db.fetch_journal(journal_id) or db.create_journal()
-    )
-
-    # atualiza os dados
-    update_journal(journal, journal_data)
-
-    # salva os dados
-    db.save_data(journal)
+    # publica os dados de journal
+    new_website_journal_publisher.update_journal(adapted_journal_data)
 
 
 def adapt_issue_data(issue_data):
@@ -75,8 +63,6 @@ def adapt_issue_data(issue_data):
 
     # data['titles'] = issue_data.titles
     # data['sections'] = issue_data.sections
-    # url_segment = StringField() | YYYY.label or 9999.ahead
-    # pid = StringField() - ISSN + YYYY + ORDER IN YEAR(4)
 
     return data
 
@@ -98,7 +84,6 @@ def publish_issue_data(issue_id):
 
     # atualiza os dados do issue do site novo
     adapted_data = adapt_issue_data(migrated_issue)
-
 
     # grava os dados do issue no site novo
     new_website_issue_publisher.update_issue(adapted_data)
